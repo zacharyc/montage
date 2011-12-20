@@ -359,7 +359,8 @@ var ArrayController = exports.ArrayController = Montage.create(ObjectController,
                 for (index = 0; index < valueLength ; index++) {
                     selectedIndex = indexes[index] - this.startIndex;
                     // Check if we are within the range of the current organizedObjects
-                    if(selectedIndex > -1 && selectedIndex < this.endIndex) {
+                    if(selectedIndex > -1 && (this.endIndex === null || selectedIndex < this.endIndex)) {
+                        // NOTE: The endIndex null check in the line above is a hack to get scratchpad working temporarily. 
                         selectedOrganizedIndexes[selectedOrganizedIndexes.length] = selectedIndex;
                    }
                 }
