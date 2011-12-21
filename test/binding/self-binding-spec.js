@@ -42,6 +42,15 @@ describe("binding/self-binding-spec.js", function() {
         beforeEach(function() {
             bindingDescriptor.oneway = true;
         });
+        
+        it("should propagate the value passed to the source when the binding is established", function() {
+            theObject.bar = "new bar value";
+
+            Object.defineBinding(theObject, "foo", bindingDescriptor);
+
+            expect(theObject.foo).toBe("new bar value");
+            expect(theObject.bar).toBe("new bar value");
+        });
 
         it ("should propagate a change at the bound property to the source property", function() {
             Object.defineBinding(theObject, "foo", bindingDescriptor);
@@ -66,6 +75,15 @@ describe("binding/self-binding-spec.js", function() {
             beforeEach(function() {
                 converter = StrToBoolConverter;
                 bindingDescriptor.converter = converter;
+            });
+            
+            it("should convert the value passed to the source when the binding is established", function() {
+                theObject.bar = "no";
+
+                Object.defineBinding(theObject, "foo", bindingDescriptor);
+
+                expect(theObject.foo).toBe(false);
+                expect(theObject.bar).toBe("no");
             });
 
             it ("should propagate a change at the bound property as a 'converted' value to the source property", function() {
@@ -99,7 +117,16 @@ describe("binding/self-binding-spec.js", function() {
     });
 
     describe("with a twoway binding", function() {
+        
+        it("should propagate the value passed to the source property when the binding is established", function() {
+            theObject.bar = "new bar value";
 
+            Object.defineBinding(theObject, "foo", bindingDescriptor);
+
+            expect(theObject.foo).toBe("new bar value");
+            expect(theObject.bar).toBe("new bar value");
+        });
+        
         it ("should propagate a change at the bound property to the source property", function() {
             Object.defineBinding(theObject, "foo", bindingDescriptor);
             theObject.bar = "new bar value";
@@ -123,6 +150,15 @@ describe("binding/self-binding-spec.js", function() {
             beforeEach(function() {
                 converter = StrToBoolConverter;
                 bindingDescriptor.converter = converter;
+            });
+            
+            it("should propagate the value passed to the source property as a 'converted' value when the binding is established", function() {
+                theObject.bar = "no";
+
+                Object.defineBinding(theObject, "foo", bindingDescriptor);
+
+                expect(theObject.foo).toBe(false);
+                expect(theObject.bar).toBe("no");
             });
 
             it ("should propagate a change at the bound property as a 'converted' value to the source property the first time such a change occurs", function() {
