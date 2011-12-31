@@ -32,7 +32,7 @@ if (typeof window.Touch === "undefined" && /Xoom|TouchPad/.test(navigator.userAg
     };
     (function() {
         var onFirstTouchstart;
-        
+
         document.addEventListener("touchstart", onFirstTouchstart = function (event) {
             window.Touch = event.touches[0].constructor;
             if (document.nativeRemoveEventListener) {
@@ -1733,6 +1733,19 @@ var EventManager = exports.EventManager = Montage.create(Montage,/** @lends modu
                 }
             }
 
+            // use most specific handler method available, possibly based upon the identifier of the event target
+            if (mutableEvent.target.identifier) {
+                identifierSpecificCaptureMethodName = this.methodNameForCapturePhaseOfEventType_(eventType, mutableEvent.target.identifier);
+            } else {
+                identifierSpecificCaptureMethodName = null;
+            }
+
+            if (mutableEvent.target.identifier) {
+                identifierSpecificBubbleMethodName = this.methodNameForBubblePhaseOfEventType_(eventType, mutableEvent.target.identifier);
+            } else {
+                identifierSpecificBubbleMethodName = null;
+            }
+
             captureMethodName = this.methodNameForCapturePhaseOfEventType_(eventType);
             bubbleMethodName = this.methodNameForBubblePhaseOfEventType_(eventType);
 
@@ -1742,14 +1755,8 @@ var EventManager = exports.EventManager = Montage.create(Montage,/** @lends modu
                 this.delegate.willDistributeEvent(mutableEvent);
             }
 
-            //If we have some specific code to run in the capture phase,  do it now:
-
             if (this._isStoringPointerEvents) {
                 this._pointerStorage.storeEvent(mutableEvent);
-            }
-
-            if (typeof this[captureMethodName] === functionType) {
-                this[captureMethodName](mutableEvent);
             }
 
             // Capture Phase Distribution
@@ -1762,13 +1769,6 @@ var EventManager = exports.EventManager = Montage.create(Montage,/** @lends modu
 
                 iEventHandler = iEventHandlerEntry.listener;
 
-                // use specific handler if installed; otherwise, handleEvent
-                if (mutableEvent.currentTarget.identifier) {
-                    identifierSpecificCaptureMethodName = this.methodNameForCapturePhaseOfEventType_(eventType, mutableEvent.currentTarget.identifier);
-                } else {
-                    identifierSpecificCaptureMethodName = null;
-                }
-
                 if (identifierSpecificCaptureMethodName && typeof iEventHandler[identifierSpecificCaptureMethodName] === functionType) {
                     iEventHandler[identifierSpecificCaptureMethodName](mutableEvent);
                 } else if (typeof iEventHandler[captureMethodName] === functionType) {
@@ -1778,21 +1778,9 @@ var EventManager = exports.EventManager = Montage.create(Montage,/** @lends modu
                 } else if (typeof iEventHandler === functionType) {
                     iEventHandler.call(event.target, mutableEvent);
                 }
-
-                // So the next handler can determine if any other handler already looked at this event
-                // we store who we last distributed the event to. this doesn't mean the handler actually
-                // did anything with it
-                // TODO only do this if the handler we just distributed the event to actually did something? indicated by a return or something?
-                // I don't want each handler to be responsible to mark the event themselves
-                mutableEvent.previousHandler = iEventHandler;
             }
 
             mutableEvent.eventPhase = AT_TARGET;
-
-            //If we have some specific code to run in the bubble phase, we do it now:
-            if (typeof this[bubbleMethodName] === functionType) {
-                this[bubbleMethodName](mutableEvent);
-            }
 
             // Bubble Phase Distribution
             for (i = 0; !mutableEvent.propagationStopped && (iEventHandlerEntry = currentEventHandlers.bubble[i]); i++) {
@@ -1804,13 +1792,6 @@ var EventManager = exports.EventManager = Montage.create(Montage,/** @lends modu
 
                 iEventHandler = iEventHandlerEntry.listener;
 
-                // use specific handler if installed; otherwise, handleEvent
-                if (mutableEvent.currentTarget.identifier) {
-                    identifierSpecificBubbleMethodName = this.methodNameForBubblePhaseOfEventType_(eventType, mutableEvent.currentTarget.identifier);
-                } else {
-                    identifierSpecificBubbleMethodName = null;
-                }
-
                 if (identifierSpecificBubbleMethodName && typeof iEventHandler[identifierSpecificBubbleMethodName] === functionType) {
                     iEventHandler[identifierSpecificBubbleMethodName](mutableEvent);
                 } else if (typeof iEventHandler[bubbleMethodName] === functionType) {
@@ -1820,13 +1801,6 @@ var EventManager = exports.EventManager = Montage.create(Montage,/** @lends modu
                 } else if (typeof iEventHandler === functionType) {
                     iEventHandler.call(event.target, mutableEvent);
                 }
-
-                // So the next handler can determine if any other handler already looked at this event
-                // we store who we last distributed the event to. this doesn't mean the handler actually
-                // did anything with it
-                // TODO only do this if the handler we just distributed the event to actually did something? indicated by a return or something?
-                // I don't want each handler to be responsible to mark the event themselves
-                mutableEvent.previousHandler = iEventHandler;
             }
 
             if (this._isStoringPointerEvents) {
