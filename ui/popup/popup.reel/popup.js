@@ -272,29 +272,22 @@ var Popup = exports.Popup = Montage.create(Component, { /** @lends module:"modul
                     };
                 }
             }
-            return pos;
+            this.position = pos;
         }
     },
 
     _positionPopup: {
         value: function(pos) {
             //console.log('--> position popup');
-            pos = pos || this.position;
+            this._calculatePosition();
+            var position = this.position;
             var popupSlot = this._popupSlot;
 
-            if(pos) {
-                if (pos.top) {
-                    popupSlot.element.style.top = pos.top + 'px';
-                }
-                if (pos.left) {
-                    popupSlot.element.style.left = pos.left + 'px';
-                }
-                if (pos.right) {
-                    popupSlot.element.style.right = pos.right + 'px';
-                }
-                if (pos.bottom) {
-                    popupSlot.element.style.bottom = pos.bottom + 'px';
-                }
+            if(position) {
+                popupSlot.element.style.top = (position.top ? position.top + 'px' : '');
+                popupSlot.element.style.left = (position.left ? position.left + 'px' : '');
+                popupSlot.element.style.right = (position.right ? position.right + 'px' : '');
+                popupSlot.element.style.bottom = (position.bottom ? position.bottom + 'px' : '');
             }
         }
     },
@@ -419,12 +412,7 @@ var Popup = exports.Popup = Montage.create(Component, { /** @lends module:"modul
                     this._modalDialogMask.classList.remove('montage-hide');
                 }
 
-                var pos = this.position || this._calculatePosition();
-                if(!this.delegate && (this.delegate && this.delegate.positionPopup)) {
-                    this.position = pos;
-                }
-                this._positionPopup(pos);
-
+                this._positionPopup();
             } else {
                 if(this.modal === true) {
                     this._modalDialogMask.classList.add('montage-hide');
@@ -488,8 +476,6 @@ var Popup = exports.Popup = Montage.create(Component, { /** @lends module:"modul
                 // an optimization to call positionPopup fewer times
                 window.clearTimeout(this._timeoutId);
                 this._timeoutId = setTimeout(function() {
-                    //self._positionPopup();
-                    self.position = self._calculatePosition();
                     self._positionPopup();
                 }, 100);
             }
