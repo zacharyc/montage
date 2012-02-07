@@ -19,7 +19,9 @@ var Montage = require("montage").Montage,
     Serializer = require("core/serializer").Serializer,
     Deserializer = require("core/deserializer").Deserializer,
     defaultEventManager = require("core/event/event-manager").defaultEventManager,
-    AT_TARGET = 2;
+    AT_TARGET = 2,
+	UnderscoreString = "_";
+
 
 /**
     @member external:Array#dispatchChangeEvent
@@ -922,7 +924,7 @@ Object.defineProperty(Object.prototype, "addEventListener", {
                                     if ("value" in currentPropertyDescriptor) {
 
                                         //Create internal storage:
-                                        Object.defineProperty(currentObject, (internalStorageProperty = "_" + key), {
+                                        Object.defineProperty(currentObject, (internalStorageProperty = UnderscoreString + key), {
                                             value: currentObject.getProperty(key),
                                             configurable: true,
                                             writable: true
@@ -1013,7 +1015,7 @@ Object.defineProperty(Object.prototype, "addEventListener", {
                                 //TODO this is all duplicated from above, clean it up
 
                                 //Create internal storage:
-                                Object.defineProperty(currentObject, (internalStorageProperty = "_" + key), {
+                                Object.defineProperty(currentObject, (internalStorageProperty = UnderscoreString + key), {
                                     value: currentObject.getProperty(key),
                                     configurable: true,
                                     writable: true
