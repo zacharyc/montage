@@ -1078,7 +1078,7 @@ exports.RichTextEditor = Montage.create(Component,/** @lends module:"montage/ui/
                             data = reader.result;
 
                             if (delegateMethod) {
-                                response = delegateMethod.call(this.delegate, this, file, data);
+                                response = delegateMethod.call(thisRef.delegate, thisRef, file, data);
                             }
                             if (response === true) {
                                 if (file.type.match(/^image\//i)) {
@@ -1208,9 +1208,9 @@ exports.RichTextEditor = Montage.create(Component,/** @lends module:"montage/ui/
                             reader.onload = function() {
                                 data = reader.result;
 
-                                this._delegateMethod("filePaste");
+                                thisRef._delegateMethod("filePaste");
                                 if (delegateMethod) {
-                                    response = delegateMethod.call(this.delegate, this, file, data);
+                                    response = delegateMethod.call(thisRef.delegate, thisRef, file, data);
                                 }
                                 if (response === true) {
                                     if (file.type.match(/^image\//i)) {
