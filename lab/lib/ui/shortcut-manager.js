@@ -130,10 +130,12 @@ exports.ShortcutManager = Montage.create(Montage,/** @lends module:"montage/ui/s
             var target = this._target,
                 modifiersMap = this._modifiersMap,
                 shortcutMap = this._shortcutMap,
+                originalKeySequence = keys,
                 key,
                 nbrKeys,
                 modifiers = 0,
                 i;
+
             // Make sure we have a valid target
             if (!target || (typeof target != "object" || !target.element) && target != "document" && target != document) {
                 console.log("SHORTCUT MANAGER: You need to set a valid target (must be a component with an element) before you can register shortcut");
@@ -158,21 +160,27 @@ exports.ShortcutManager = Montage.create(Montage,/** @lends module:"montage/ui/s
             }
 
             // Convert the keys into a modifiers mask
-            keys = keys.split("+");
+            keys = keys.toUpperCase().replace(/ /g, "").split("+");
             nbrKeys = keys.length;
             for (i = 0; i < nbrKeys - 1; i ++) {
-                modifier = keys[i].toUpperCase();
+                modifier = keys[i];
                 if (this._modifiersMap[modifier]) {
                     modifiers += this._modifiersMap[modifier];
+                } else {
+                    console.warn("shortcut syntax error:", originalKeySequence);
+                    return;
                 }
             }
 
             // Extra the final key
-            key = keys[nbrKeys - 1].toUpperCase();
+            key = keys[nbrKeys - 1];
             if (this._keyNames[key] !== undefined) {
                 key = this._keyNames[key];
-            } else {
+            } else if (key.length == 1 ) {
                 key = key.charCodeAt(0);
+            } else {
+                console.warn("shortcut syntax error:", originalKeySequence);
+                return;
             }
 
             // Update the shortcutMap
