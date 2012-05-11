@@ -480,7 +480,7 @@ LoggerUI = Montage.create(Montage, /** @lends module:montage/core/logger.LoggerU
     @function module:montage/core/logger.#setupUI
 */
 var setupUI = function() {
-    LoggerUI.create().init();
+//    LoggerUI.create().init();
 }
 /**
         @type {Statement}
