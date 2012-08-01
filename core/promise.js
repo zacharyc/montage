@@ -15,6 +15,26 @@
 // This module is used during the boot-strapping, so it can be required as
 // a normal CommonJS module, but alternately bootstraps Montage if there
 // is a bootstrap global variable.
+/**
+    @module module:montage/core/promise
+*/
+
+/**
+    @class module:montage/core/promise.Promise
+*/
+
+/*global bootstrap,Q */
+// Scope:
+//  * ES5
+//  * speed and economy of memory before safety and securability
+//  * run-time compatibility via thenability
+
+// TODO note the comps/promiseSend/sendPromise and argument order
+//      changes from Q
+
+// This module is used during the boot-strapping, so it can be required as
+// a normal CommonJS module, but alternately bootstraps Montage if there
+// is a bootstrap global variable.
 (function (definition) {
     if (typeof bootstrap !== "undefined") {
         bootstrap("core/promise", definition);
@@ -73,9 +93,18 @@ function toPromise(value) {
 var Creatable = Object.create(Object.prototype, {
     create: {
         value: function (descriptor) {
+            for (var name in descriptor) {
+                var property = descriptor[name];
+                if (!property.set && !property.get) {
+                    property.writable = true;
+                }
+                property.configurable = true;
+            }
             return Object.create(this, descriptor);
-        }
-    },
+        },
+        writable: true,
+        configurable: true
+    }
 });
 
 // Common implementation details of FulfilledPromise, RejectedPromise, and
@@ -95,14 +124,18 @@ var AbstractPromise = Creatable.create({
                 result = this.Promise.reject(error && error.message, error);
             }
             resolve(result);
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     // Defers polymorphically to toString
     toSource: {
         value: function () {
             return this.toString();
-        }
+        },
+        writable: true,
+        configurable: true
     }
 
 });
@@ -118,6 +151,7 @@ var PrimordialPromise = Creatable.create({
 
             // automatically subcreate each of the contained promise types
             var creation = Object.create(this);
+            creation.AbstractPromise = this.AbstractPromise.create(promiseDescriptor);
             creation.DeferredPromise = this.DeferredPromise.create(promiseDescriptor);
             creation.FulfilledPromise = this.FulfilledPromise.create(promiseDescriptor);
             creation.RejectedPromise = this.RejectedPromise.create(promiseDescriptor);
@@ -138,16 +172,27 @@ var PrimordialPromise = Creatable.create({
             }
 
             return creation;
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     isPromise: {
         value: function (value) {
             return value && typeof value.sendPromise !== "undefined";
+        },
+        writable: true,
+        configurable: true
+    },
+
+    // deprecated
+    ref: {
+        get: function () {
+            return this.resolve;
         }
     },
 
-    ref: {
+    resolve: {
         value: function (object) {
             // if it is already a promise, wrap it to guarantee
             // the full public API of this promise variety.
@@ -176,7 +221,9 @@ var PrimordialPromise = Creatable.create({
             } else {
                 return this.fulfill(object);
             }
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     fulfill: {
@@ -235,7 +282,9 @@ var PrimordialPromise = Creatable.create({
                 }
             }
 
-        })
+        }),
+        writable: true,
+        configurable: true
     },
 
     reject: {
@@ -244,9 +293,13 @@ var PrimordialPromise = Creatable.create({
             self._reason = reason;
             self._error = error;
             self.Promise = this;
-            errors.push(error && error.stack || self);
+            rejections.push(self);
+            errors.push(error ? (error.stack ? error.stack : error) : reason);
+            displayErrors();
             return self;
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     RejectedPromise: {
@@ -257,8 +310,9 @@ var PrimordialPromise = Creatable.create({
                     then: function (r, o, rejected) {
                         // remove this error from the list of unhandled errors on the console
                         if (rejected) {
-                            var at = errors.indexOf(this._error && this._error.stack || this);
+                            var at = rejections.indexOf(this);
                             if (at !== -1) {
+                                rejections.splice(at, 1);
                                 errors.splice(at, 1);
                             }
                         }
@@ -291,7 +345,9 @@ var PrimordialPromise = Creatable.create({
                 value: true
             }
 
-        })
+        }),
+        writable: true,
+        configurable: true
     },
 
     defer: {
@@ -305,7 +361,9 @@ var PrimordialPromise = Creatable.create({
             deferred.Promise = this;
             promise._deferred = deferred;
             return deferred;
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     Deferred: {
@@ -334,9 +392,11 @@ var PrimordialPromise = Creatable.create({
                         this.Promise.reject(reason, error)
                     );
                 }
-            },
+            }
 
-        })
+        }),
+        writable: true,
+        configurable: true
     },
 
     DeferredPromise: {
@@ -368,8 +428,16 @@ var PrimordialPromise = Creatable.create({
                 }
             }
 
-        })
+        }),
+        writable: true,
+        configurable: true
     },
+
+    AbstractPromise: {
+        value: AbstractPromise,
+        writable: true,
+        configurable: true
+    }
 
 });
 
@@ -381,7 +449,9 @@ var Promise = PrimordialPromise.create({}, { // Descriptor for each of the three
     when: {
         value: function (fulfilled, rejected) {
             return this.then(fulfilled, rejected);
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     spread: {
@@ -389,7 +459,9 @@ var Promise = PrimordialPromise.create({}, { // Descriptor for each of the three
             return this.all().then(function (args) {
                 return fulfilled.apply(void 0, args);
             }, rejected);
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     then: {
@@ -402,7 +474,7 @@ var Promise = PrimordialPromise.create({}, { // Descriptor for each of the three
                 try {
                     deferred.resolve(fulfilled ? fulfilled(value) : value);
                 } catch (error) {
-                    console.error(error.stack);
+                    console.error(error.stack || error, fulfilled);
                     deferred.reject(error.message, error);
                 }
             }
@@ -448,7 +520,9 @@ var Promise = PrimordialPromise.create({}, { // Descriptor for each of the three
             });
 
             return deferred.promise;
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     send: {
@@ -467,57 +541,75 @@ var Promise = PrimordialPromise.create({}, { // Descriptor for each of the three
                 );
             })
             return deferred.promise;
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     get: {
         value: function () {
             return this.send(GET, arguments);
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     put: {
         value: function () {
             return this.send(PUT, arguments);
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     "delete": {
         value: function () {
             return this.send(DELETE, arguments);
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     post: {
         value: function () {
             return this.send(POST, arguments);
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     invoke: {
         value: function (name /*, ...args*/) {
             var args = Array.prototype.slice.call(arguments, 1);
             return this.send(POST, [name, args]);
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     apply: {
         value: function () {
             return this.send(APPLY, arguments);
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     call: {
         value: function (thisp /*, ...args*/) {
             var args = Array.prototype.slice.call(arguments, 1);
             return this.send(APPLY, [thisp, args]);
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     keys: {
         value: function () {
             return this.send(KEYS, []);
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     all: {
@@ -542,24 +634,31 @@ var Promise = PrimordialPromise.create({}, { // Descriptor for each of the three
                 });
                 return deferred.promise;
             });
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     delay: {
         value: function (timeout) {
-            var deferred = this.Promise.defer();
-            this.then(function (value) {
-                clearTimeout(handle);
-                deferred.resolve(value);
-            }, function (reason, error, rejection) {
-                clearTimeout(handle);
-                deferred.resolve(rejection);
+            var self = this;
+            var promise;
+            if (arguments.length === 0) {
+                timeout = this;
+            } else {
+                promise = this;
+            }
+            return Promise.ref(timeout)
+            .then(function (timeout) {
+                var deferred = self.Promise.defer();
+                setTimeout(function () {
+                    deferred.resolve(promise);
+                }, timeout);
+                return deferred.promise;
             });
-            var handle = setTimeout(function () {
-                deferred.reject("Timed out");
-            }, timeout);
-            return deferred.promise;
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     timeout: {
@@ -573,16 +672,20 @@ var Promise = PrimordialPromise.create({}, { // Descriptor for each of the three
                 deferred.resolve(rejection);
             }).end();
             var handle = setTimeout(function () {
-                deferred.reject("Timed out");
+                deferred.reject("Timed out", new Error("Timed out"));
             }, timeout);
             return deferred.promise;
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     fail: {
         value: function (rejected) {
             return this.then(void 0, rejected);
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     fin: {
@@ -601,7 +704,9 @@ var Promise = PrimordialPromise.create({}, { // Descriptor for each of the three
             // Guarantees that the same API gets
             // returned as received.
             .to(this.Promise);
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     end: {
@@ -615,13 +720,17 @@ var Promise = PrimordialPromise.create({}, { // Descriptor for each of the three
                 });
             })
             // Returns undefined
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     isResolved: {
         value: function () {
             return this.isFulfilled() || this.isRejected();
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     isFulfilled: {
@@ -630,41 +739,57 @@ var Promise = PrimordialPromise.create({}, { // Descriptor for each of the three
                 !Promise.isPromise(this.valueOf()) &&
                 !this.isRejected()
             );
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     isRejected: {
         value: function () {
             var value = this.valueOf();
             return !!(value && value.promiseRejected);
-        }
+        },
+        writable: true,
+        configurable: true
     },
 
     to: {
         value: function (Type) {
             return Type.ref(this);
-        }
+        },
+        writable: true,
+        configurable: true
     }
 
 });
 
+var rejections = [];
 var errors = [];
-// Live console objects are not handled on tablets
-if (typeof window !== "undefined" && !window.Touch) {
+var errorsDisplayed = false;
+var displayErrors = function () {
+    // Live console objects are not handled on tablets or in Node
+    if (
+        !errorsDisplayed &&
+        typeof window !== "undefined" &&
+        !window.Touch &&
+        typeof console === "object"
+    ) {
 
-    /*
-    * This promise library consumes exceptions thrown in callbacks so
-    * that they can be handled asynchronously.  The exceptions get
-    * added to ``errors`` when they are consumed, and removed when
-    * they are handled.  In many debuggers, the view of the reported
-    * array will update to reflect its current contents so you can
-    * always see if you have missed an error.
-    *
-    * This log will appear once for every time this module gets
-    * instantiated.  That should be once per frame.
-    */
-    console.log("Should be empty:", errors);
-}
+        /*
+        * This promise library consumes exceptions thrown in callbacks so
+        * that they can be handled asynchronously.  The exceptions get
+        * added to ``errors`` when they are consumed, and removed when
+        * they are handled.  In many debuggers, the view of the reported
+        * array will update to reflect its current contents so you can
+        * always see if you have missed an error.
+        *
+        * This log will appear once for every time this module gets
+        * instantiated.  That should be once per frame.
+        */
+        console.log("Should be empty:", errors);
+        errorsDisplayed = true;
+    }
+};
 
 exports.Promise = Promise;
 
